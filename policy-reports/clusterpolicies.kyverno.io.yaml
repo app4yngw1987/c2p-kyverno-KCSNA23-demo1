@@ -1,0 +1,1713 @@
+apiVersion: v1
+items:
+- apiVersion: kyverno.io/v1
+  kind: ClusterPolicy
+  metadata:
+    annotations:
+      kyverno.io/kubernetes-version: "1.23"
+      kyverno.io/kyverno-version: 1.6.0
+      policies.kyverno.io/category: Other
+      policies.kyverno.io/description: In instances where a ClusterPolicy defines
+        all the approved image registries is insufficient, more granular control may
+        be needed to set permitted registries, especially in multi-tenant use cases
+        where some registries may be based on the Namespace. This policy shows an
+        advanced version of the Restrict Image Registries policy which gets a global
+        approved registry from a ConfigMap and, based upon an annotation at the Namespace
+        level, gets the registry approved for that Namespace.
+      policies.kyverno.io/minversion: 1.6.0
+      policies.kyverno.io/severity: medium
+      policies.kyverno.io/subject: Pod
+      policies.kyverno.io/title: Advanced Restrict Image Registries
+    creationTimestamp: "2023-11-06T12:22:50Z"
+    generation: 1
+    labels:
+      app.kubernetes.io/instance: c2p
+    name: advanced-restrict-image-registries
+    resourceVersion: "10820"
+    uid: 47aefadf-dbc6-41a0-b090-66f8e2102e77
+  spec:
+    background: false
+    rules:
+    - context:
+      - apiCall:
+          jmesPath: metadata.annotations."corp.com/allowed-registries" || ''
+          method: GET
+          urlPath: /api/v1/namespaces/{{request.namespace}}
+        name: nsregistries
+      - configMap:
+          name: clusterregistries
+          namespace: default
+        name: clusterregistries
+      match:
+        any:
+        - resources:
+            kinds:
+            - Pod
+      name: validate-corp-registries
+      preconditions:
+        any:
+        - key: '{{request.operation || ''BACKGROUND''}}'
+          operator: AnyIn
+          value:
+          - CREATE
+          - UPDATE
+      validate:
+        foreach:
+        - deny:
+            conditions:
+              all:
+              - key: '{{element.image}}'
+                operator: NotEquals
+                value: '{{nsregistries}}'
+              - key: '{{element.image}}'
+                operator: NotEquals
+                value: '{{clusterregistries.data.registries}}'
+          list: request.object.spec.[initContainers, ephemeralContainers, containers][]
+        message: This Pod names an image that is not from an approved registry.
+    validationFailureAction: audit
+  status:
+    autogen:
+      rules:
+      - context:
+        - apiCall:
+            jmesPath: metadata.annotations."corp.com/allowed-registries" || ''
+            method: GET
+            urlPath: /api/v1/namespaces/{{request.namespace}}
+          name: nsregistries
+        - configMap:
+            name: clusterregistries
+            namespace: default
+          name: clusterregistries
+        exclude:
+          resources: {}
+        generate:
+          clone: {}
+          cloneList: {}
+        match:
+          any:
+          - resources:
+              kinds:
+              - DaemonSet
+              - Deployment
+              - Job
+              - StatefulSet
+              - ReplicaSet
+              - ReplicationController
+          resources: {}
+        mutate: {}
+        name: autogen-validate-corp-registries
+        preconditions:
+          any:
+          - key: '{{request.operation || ''BACKGROUND''}}'
+            operator: AnyIn
+            value:
+            - CREATE
+            - UPDATE
+        validate:
+          foreach:
+          - deny:
+              conditions:
+                all:
+                - key: '{{element.image}}'
+                  operator: NotEquals
+                  value: '{{nsregistries}}'
+                - key: '{{element.image}}'
+                  operator: NotEquals
+                  value: '{{clusterregistries.data.registries}}'
+            list: request.object.spec.template.spec.[initContainers, ephemeralContainers,
+              containers][]
+          message: This Pod names an image that is not from an approved registry.
+      - context:
+        - apiCall:
+            jmesPath: metadata.annotations."corp.com/allowed-registries" || ''
+            method: GET
+            urlPath: /api/v1/namespaces/{{request.namespace}}
+          name: nsregistries
+        - configMap:
+            name: clusterregistries
+            namespace: default
+          name: clusterregistries
+        exclude:
+          resources: {}
+        generate:
+          clone: {}
+          cloneList: {}
+        match:
+          any:
+          - resources:
+              kinds:
+              - CronJob
+          resources: {}
+        mutate: {}
+        name: autogen-cronjob-validate-corp-registries
+        preconditions:
+          any:
+          - key: '{{request.operation || ''BACKGROUND''}}'
+            operator: AnyIn
+            value:
+            - CREATE
+            - UPDATE
+        validate:
+          foreach:
+          - deny:
+              conditions:
+                all:
+                - key: '{{element.image}}'
+                  operator: NotEquals
+                  value: '{{nsregistries}}'
+                - key: '{{element.image}}'
+                  operator: NotEquals
+                  value: '{{clusterregistries.data.registries}}'
+            list: request.object.spec.jobTemplate.spec.template.spec.[initContainers,
+              ephemeralContainers, containers][]
+          message: This Pod names an image that is not from an approved registry.
+    conditions:
+    - lastTransitionTime: "2023-11-06T12:22:53Z"
+      message: Ready
+      reason: Succeeded
+      status: "True"
+      type: Ready
+    ready: true
+    rulecount:
+      generate: 0
+      mutate: 0
+      validate: 1
+      verifyimages: 0
+- apiVersion: kyverno.io/v1
+  kind: ClusterPolicy
+  metadata:
+    annotations:
+      kyverno.io/kubernetes-version: "1.23"
+      kyverno.io/kyverno-version: 1.7.0
+      policies.kyverno.io/category: Other
+      policies.kyverno.io/description: Building images which specify a base as their
+        origin is a good start to improving supply chain security, but over time organizations
+        may want to build an allow list of specific base images which are allowed
+        to be used when constructing containers. This policy ensures that a container's
+        base, found in an OCI annotation, is in a cluster-wide allow list.
+      policies.kyverno.io/minversion: 1.7.0
+      policies.kyverno.io/severity: medium
+      policies.kyverno.io/subject: Pod
+      policies.kyverno.io/title: Allowed Base Images
+    creationTimestamp: "2023-11-06T12:22:50Z"
+    generation: 1
+    labels:
+      app.kubernetes.io/instance: c2p
+    name: allowed-base-images
+    resourceVersion: "10844"
+    uid: d6358cbe-23c5-4b0a-aa0f-3291f7759387
+  spec:
+    background: true
+    rules:
+    - context:
+      - configMap:
+          name: baseimages
+          namespace: platform
+        name: baseimages
+      match:
+        any:
+        - resources:
+            kinds:
+            - Pod
+      name: allowed-base-images
+      preconditions:
+        all:
+        - key: '{{request.operation || ''BACKGROUND''}}'
+          operator: NotEquals
+          value: DELETE
+      validate:
+        foreach:
+        - context:
+          - imageRegistry:
+              reference: '{{ element.image }}'
+            name: imageData
+          - name: basename
+            variable:
+              default: ""
+              jmesPath: imageData.manifest.annotations."org.opencontainers.image.base.name"
+          deny:
+            conditions:
+              all:
+              - key: '{{ basename }}'
+                operator: AnyNotIn
+                value: '{{ baseimages.data.allowedbaseimages }}'
+          list: request.object.spec.containers
+        message: This container image's base is not in the approved list or is not
+          specified. Only pre-approved base images may be used. Please contact the
+          platform team for assistance.
+    validationFailureAction: audit
+  status:
+    autogen:
+      rules:
+      - context:
+        - configMap:
+            name: baseimages
+            namespace: platform
+          name: baseimages
+        exclude:
+          resources: {}
+        generate:
+          clone: {}
+          cloneList: {}
+        match:
+          any:
+          - resources:
+              kinds:
+              - DaemonSet
+              - Deployment
+              - Job
+              - StatefulSet
+              - ReplicaSet
+              - ReplicationController
+          resources: {}
+        mutate: {}
+        name: autogen-allowed-base-images
+        preconditions:
+          all:
+          - key: '{{request.operation || ''BACKGROUND''}}'
+            operator: NotEquals
+            value: DELETE
+        validate:
+          foreach:
+          - context:
+            - imageRegistry:
+                reference: '{{ element.image }}'
+              name: imageData
+            - name: basename
+              variable:
+                default: ""
+                jmesPath: imageData.manifest.annotations."org.opencontainers.image.base.name"
+            deny:
+              conditions:
+                all:
+                - key: '{{ basename }}'
+                  operator: AnyNotIn
+                  value: '{{ baseimages.data.allowedbaseimages }}'
+            list: request.object.spec.template.spec.containers
+          message: This container image's base is not in the approved list or is not
+            specified. Only pre-approved base images may be used. Please contact the
+            platform team for assistance.
+      - context:
+        - configMap:
+            name: baseimages
+            namespace: platform
+          name: baseimages
+        exclude:
+          resources: {}
+        generate:
+          clone: {}
+          cloneList: {}
+        match:
+          any:
+          - resources:
+              kinds:
+              - CronJob
+          resources: {}
+        mutate: {}
+        name: autogen-cronjob-allowed-base-images
+        preconditions:
+          all:
+          - key: '{{request.operation || ''BACKGROUND''}}'
+            operator: NotEquals
+            value: DELETE
+        validate:
+          foreach:
+          - context:
+            - imageRegistry:
+                reference: '{{ element.image }}'
+              name: imageData
+            - name: basename
+              variable:
+                default: ""
+                jmesPath: imageData.manifest.annotations."org.opencontainers.image.base.name"
+            deny:
+              conditions:
+                all:
+                - key: '{{ basename }}'
+                  operator: AnyNotIn
+                  value: '{{ baseimages.data.allowedbaseimages }}'
+            list: request.object.spec.jobTemplate.spec.template.spec.containers
+          message: This container image's base is not in the approved list or is not
+            specified. Only pre-approved base images may be used. Please contact the
+            platform team for assistance.
+    conditions:
+    - lastTransitionTime: "2023-11-06T12:22:53Z"
+      message: Ready
+      reason: Succeeded
+      status: "True"
+      type: Ready
+    ready: true
+    rulecount:
+      generate: 0
+      mutate: 0
+      validate: 1
+      verifyimages: 0
+- apiVersion: kyverno.io/v1
+  kind: ClusterPolicy
+  metadata:
+    annotations:
+      kyverno.io/kubernetes-version: "1.24"
+      kyverno.io/kyverno-version: 1.9.0
+      policies.kyverno.io/category: Other
+      policies.kyverno.io/description: In addition to restricting the image registry
+        from which images are pulled, in some cases and environments it may be required
+        to also restrict which image repositories are used,  for example in some restricted
+        Namespaces. This policy ensures that the only allowed image repositories present
+        in a given Pod, across any container type, come from the designated list.
+      policies.kyverno.io/severity: medium
+      policies.kyverno.io/subject: Pod
+      policies.kyverno.io/title: Allowed Image Repositories
+    creationTimestamp: "2023-11-06T12:22:50Z"
+    generation: 1
+    labels:
+      app.kubernetes.io/instance: c2p
+    name: allowed-image-repos
+    resourceVersion: "10816"
+    uid: cdb45905-a932-4ce8-b6dd-50bd657a1111
+  spec:
+    background: false
+    rules:
+    - match:
+        any:
+        - resources:
+            kinds:
+            - Pod
+      name: good-repos
+      validate:
+        deny:
+          conditions:
+            all:
+            - key: '{{ images.[containers, initContainers, ephemeralContainers][].*.name[]
+                }}'
+              operator: AnyNotIn
+              value:
+              - myknownimage
+              - kyverno
+        message: All images in this Pod must come from an authorized repository.
+    validationFailureAction: audit
+  status:
+    autogen:
+      rules:
+      - exclude:
+          resources: {}
+        generate:
+          clone: {}
+          cloneList: {}
+        match:
+          any:
+          - resources:
+              kinds:
+              - DaemonSet
+              - Deployment
+              - Job
+              - StatefulSet
+              - ReplicaSet
+              - ReplicationController
+          resources: {}
+        mutate: {}
+        name: autogen-good-repos
+        validate:
+          deny:
+            conditions:
+              all:
+              - key: '{{ images.[containers, initContainers, ephemeralContainers][].*.name[]
+                  }}'
+                operator: AnyNotIn
+                value:
+                - myknownimage
+                - kyverno
+          message: All images in this Pod must come from an authorized repository.
+      - exclude:
+          resources: {}
+        generate:
+          clone: {}
+          cloneList: {}
+        match:
+          any:
+          - resources:
+              kinds:
+              - CronJob
+          resources: {}
+        mutate: {}
+        name: autogen-cronjob-good-repos
+        validate:
+          deny:
+            conditions:
+              all:
+              - key: '{{ images.[containers, initContainers, ephemeralContainers][].*.name[]
+                  }}'
+                operator: AnyNotIn
+                value:
+                - myknownimage
+                - kyverno
+          message: All images in this Pod must come from an authorized repository.
+    conditions:
+    - lastTransitionTime: "2023-11-06T12:22:53Z"
+      message: Ready
+      reason: Succeeded
+      status: "True"
+      type: Ready
+    ready: true
+    rulecount:
+      generate: 0
+      mutate: 0
+      validate: 1
+      verifyimages: 0
+- apiVersion: kyverno.io/v1
+  kind: ClusterPolicy
+  metadata:
+    annotations:
+      kyverno.io/kubernetes-version: "1.23"
+      kyverno.io/kyverno-version: 1.6.0
+      pod-policies.kyverno.io/autogen-controllers: none
+      policies.kyverno.io/category: Other
+      policies.kyverno.io/description: In some cases, operations teams need a type
+        of limited access to change resources during troubleshooting or outage mitigation.
+        This policy demonstrates how to prevent modification to labels except one
+        with the key `breakglass`. Changing, adding, or deleting any other labels
+        is denied.
+      policies.kyverno.io/minversion: 1.6.0
+      policies.kyverno.io/severity: medium
+      policies.kyverno.io/subject: Pod,Label
+      policies.kyverno.io/title: Allowed Label Changes
+    creationTimestamp: "2023-11-06T12:22:50Z"
+    generation: 1
+    labels:
+      app.kubernetes.io/instance: c2p
+    name: allowed-label-changes
+    resourceVersion: "10847"
+    uid: 64f27f8b-4ff4-4908-9c71-7601547a738d
+  spec:
+    background: false
+    rules:
+    - match:
+        any:
+        - resources:
+            kinds:
+            - Pod
+            - Deployment
+            - StatefulSet
+            - DaemonSet
+            - Job
+            - CronJob
+      name: safe-label
+      preconditions:
+        all:
+        - key: '{{ request.operation || ''BACKGROUND'' }}'
+          operator: Equals
+          value: UPDATE
+      validate:
+        deny:
+          conditions:
+            any:
+            - key: '{{ request.object.metadata.labels || `{}` |  merge(@, {breakglass:null})
+                }}'
+              operator: NotEquals
+              value: '{{ request.oldObject.metadata.labels || `{}` |  merge(@, {breakglass:null})
+                }}'
+        message: The only label that may be removed or changed is `breakglass`.
+    validationFailureAction: enforce
+  status:
+    autogen: {}
+    conditions:
+    - lastTransitionTime: "2023-11-06T12:22:53Z"
+      message: Ready
+      reason: Succeeded
+      status: "True"
+      type: Ready
+    ready: true
+    rulecount:
+      generate: 0
+      mutate: 0
+      validate: 1
+      verifyimages: 0
+- apiVersion: kyverno.io/v1
+  kind: ClusterPolicy
+  metadata:
+    annotations:
+      policies.kyverno.io/category: Sample
+      policies.kyverno.io/description: A Pod PriorityClass is used to provide a guarantee
+        on the scheduling of a Pod relative to others. In certain cases where not
+        all users in a cluster are trusted, a malicious user could create Pods at
+        the highest possible priorities, causing other Pods to be evicted/not get
+        scheduled. This policy checks the defined `priorityClassName` in a Pod spec
+        to a dictionary of allowable PriorityClasses for the given Namespace stored
+        in a ConfigMap. If the `priorityClassName` is not among them, the Pod is blocked.
+      policies.kyverno.io/minversion: 1.6.0
+      policies.kyverno.io/subject: Pod
+      policies.kyverno.io/title: Allowed Pod Priorities
+    creationTimestamp: "2023-11-06T12:22:50Z"
+    generation: 1
+    labels:
+      app.kubernetes.io/instance: c2p
+    name: allowed-podpriorities
+    resourceVersion: "10848"
+    uid: ecb98f4a-95a8-4c62-87e3-f0a760d1138d
+  spec:
+    background: true
+    rules:
+    - context:
+      - configMap:
+          name: allowed-pod-priorities
+          namespace: default
+        name: podprioritydict
+      match:
+        any:
+        - resources:
+            kinds:
+            - Deployment
+            - DaemonSet
+            - StatefulSet
+            - Job
+      name: validate-pod-priority
+      validate:
+        deny:
+          conditions:
+            any:
+            - key: '{{ request.object.spec.template.spec.priorityClassName }}'
+              operator: AnyNotIn
+              value: '{{ podprioritydict.data."{{request.namespace}}" || "" }}'
+        message: 'The Pod PriorityClass {{ request.object.spec.template.spec.priorityClassName
+          }} is not in the list of the following PriorityClasses allowed in this Namespace:
+          {{ podprioritydict.data."{{request.namespace}}" }}.'
+    - context:
+      - configMap:
+          name: allowed-pod-priorities
+          namespace: default
+        name: podprioritydict
+      match:
+        any:
+        - resources:
+            kinds:
+            - Pod
+      name: validate-pod-priority-pods
+      validate:
+        deny:
+          conditions:
+            any:
+            - key: '{{ request.object.spec.priorityClassName || '''' }}'
+              operator: AnyNotIn
+              value: '{{ podprioritydict.data."{{request.namespace}}" || "" }}'
+        message: 'The Pod PriorityClass {{ request.object.spec.priorityClassName }}
+          is not in the list of the following PriorityClasses allowed in this Namespace:
+          {{ podprioritydict.data."{{request.namespace}}" }}.'
+    - context:
+      - configMap:
+          name: allowed-pod-priorities
+          namespace: default
+        name: podprioritydict
+      match:
+        any:
+        - resources:
+            kinds:
+            - CronJob
+      name: validate-pod-priority-cronjob
+      validate:
+        deny:
+          conditions:
+            any:
+            - key: '{{ request.object.spec.jobTemplate.spec.template.spec.priorityClassName
+                }}'
+              operator: AnyNotIn
+              value: '{{ podprioritydict.data."{{request.namespace}}" || "" }}'
+        message: 'The Pod PriorityClass {{ request.object.spec.jobTemplate.spec.template.spec.priorityClassName
+          }} is not in the list of the following PriorityClasses allowed in this Namespace:
+          {{ podprioritydict.data."{{request.namespace}}" }}.'
+    validationFailureAction: audit
+  status:
+    autogen:
+      rules:
+      - context:
+        - configMap:
+            name: allowed-pod-priorities
+            namespace: default
+          name: podprioritydict
+        exclude:
+          resources: {}
+        generate:
+          clone: {}
+          cloneList: {}
+        match:
+          any:
+          - resources:
+              kinds:
+              - DaemonSet
+              - Deployment
+              - Job
+              - StatefulSet
+              - ReplicaSet
+              - ReplicationController
+          resources: {}
+        mutate: {}
+        name: autogen-validate-pod-priority-pods
+        validate:
+          deny:
+            conditions:
+              any:
+              - key: '{{ request.object.spec.template.spec.priorityClassName || ''''
+                  }}'
+                operator: AnyNotIn
+                value: '{{ podprioritydict.data."{{request.namespace}}" || "" }}'
+          message: 'The Pod PriorityClass {{ request.object.spec.template.spec.priorityClassName
+            }} is not in the list of the following PriorityClasses allowed in this
+            Namespace: {{ podprioritydict.data."{{request.namespace}}" }}.'
+      - context:
+        - configMap:
+            name: allowed-pod-priorities
+            namespace: default
+          name: podprioritydict
+        exclude:
+          resources: {}
+        generate:
+          clone: {}
+          cloneList: {}
+        match:
+          any:
+          - resources:
+              kinds:
+              - CronJob
+          resources: {}
+        mutate: {}
+        name: autogen-cronjob-validate-pod-priority-pods
+        validate:
+          deny:
+            conditions:
+              any:
+              - key: '{{ request.object.spec.jobTemplate.spec.template.spec.priorityClassName
+                  || '''' }}'
+                operator: AnyNotIn
+                value: '{{ podprioritydict.data."{{request.namespace}}" || "" }}'
+          message: 'The Pod PriorityClass {{ request.object.spec.jobTemplate.spec.template.spec.priorityClassName
+            }} is not in the list of the following PriorityClasses allowed in this
+            Namespace: {{ podprioritydict.data."{{request.namespace}}" }}.'
+    conditions:
+    - lastTransitionTime: "2023-11-06T12:22:53Z"
+      message: Ready
+      reason: Succeeded
+      status: "True"
+      type: Ready
+    ready: true
+    rulecount:
+      generate: 0
+      mutate: 0
+      validate: 3
+      verifyimages: 0
+- apiVersion: kyverno.io/v1
+  kind: ClusterPolicy
+  metadata:
+    annotations:
+      policies.kyverno.io/category: other
+      policies.kyverno.io/description: In some cases we would want to block operations
+        (CREATE/UPDATE/DELETE) of certain privileged users (i.e. cluster-admins),
+        in a specific namespace. In this policy, Kyverno look for all user operations
+        (`CREATE, UPDATE, DELETE`), on every object kind (Pod,Deployment,Route,Service,etc.),
+        in the testnamespace namespace, and for the `clusterRole cluster-admin`. The
+        `subject User testuser` is also mentioned so it won’t include all the cluster-admins
+        in the cluster, but will be flexiable enough to apply only for a sub-group
+        of the cluster-admins in the cluster.
+      policies.kyverno.io/minversion: 1.9.0
+      policies.kyverno.io/subject: Namespace, ClusterRole, User
+      policies.kyverno.io/title: Block a Cluster Admin/s from CREATE/UPDATE/DELETE
+        any object in a Namespace
+    creationTimestamp: "2023-11-06T12:22:50Z"
+    generation: 1
+    labels:
+      app.kubernetes.io/instance: c2p
+    name: block-cluster-admin-from-ns
+    resourceVersion: "10795"
+    uid: 3019ff03-5f84-42ea-a47b-de12b6b82844
+  spec:
+    background: false
+    rules:
+    - match:
+        any:
+        - clusterRoles:
+          - cluster-admin
+          resources:
+            kinds:
+            - '*'
+            namespaces:
+            - testnamespace
+          subjects:
+          - kind: User
+            name: testuser
+      name: block-cluster-admin-from-ns
+      validate:
+        deny:
+          conditions:
+            any:
+            - key: '{{request.operation || ''BACKGROUND''}}'
+              operator: AnyIn
+              value:
+              - CREATE
+              - UPDATE
+              - DELETE
+        message: The cluster-admin 'testuser' user cannot touch testnamespace Namespace.
+    validationFailureAction: Enforce
+  status:
+    autogen: {}
+    conditions:
+    - lastTransitionTime: "2023-11-06T12:22:52Z"
+      message: Ready
+      reason: Succeeded
+      status: "True"
+      type: Ready
+    ready: true
+    rulecount:
+      generate: 0
+      mutate: 0
+      validate: 1
+      verifyimages: 0
+- apiVersion: kyverno.io/v1
+  kind: ClusterPolicy
+  metadata:
+    annotations:
+      kyverno.io/kubernetes-version: "1.23"
+      kyverno.io/kyverno-version: 1.6.0
+      policies.kyverno.io/category: Other
+      policies.kyverno.io/description: Ephemeral containers, enabled by default in
+        Kubernetes 1.23, allow users to use the `kubectl debug` functionality and
+        attach a temporary container to an existing Pod. This may potentially be used
+        to gain access to unauthorized information executing inside one or more containers
+        in that Pod. This policy blocks the use of ephemeral containers.
+      policies.kyverno.io/minversion: 1.6.0
+      policies.kyverno.io/severity: medium
+      policies.kyverno.io/subject: Pod
+      policies.kyverno.io/title: Block Ephemeral Containers
+    creationTimestamp: "2023-11-06T12:22:50Z"
+    generation: 1
+    labels:
+      app.kubernetes.io/instance: c2p
+    name: block-ephemeral-containers
+    resourceVersion: "10814"
+    uid: 0f81c911-822c-41cd-aecc-f6c53037a044
+  spec:
+    background: true
+    rules:
+    - match:
+        any:
+        - resources:
+            kinds:
+            - Pod
+      name: block-ephemeral-containers
+      validate:
+        message: Ephemeral (debug) containers are not permitted.
+        pattern:
+          spec:
+            X(ephemeralContainers): "null"
+    validationFailureAction: audit
+  status:
+    autogen:
+      rules:
+      - exclude:
+          resources: {}
+        generate:
+          clone: {}
+          cloneList: {}
+        match:
+          any:
+          - resources:
+              kinds:
+              - DaemonSet
+              - Deployment
+              - Job
+              - StatefulSet
+              - ReplicaSet
+              - ReplicationController
+          resources: {}
+        mutate: {}
+        name: autogen-block-ephemeral-containers
+        validate:
+          message: Ephemeral (debug) containers are not permitted.
+          pattern:
+            spec:
+              template:
+                spec:
+                  X(ephemeralContainers): "null"
+      - exclude:
+          resources: {}
+        generate:
+          clone: {}
+          cloneList: {}
+        match:
+          any:
+          - resources:
+              kinds:
+              - CronJob
+          resources: {}
+        mutate: {}
+        name: autogen-cronjob-block-ephemeral-containers
+        validate:
+          message: Ephemeral (debug) containers are not permitted.
+          pattern:
+            spec:
+              jobTemplate:
+                spec:
+                  template:
+                    spec:
+                      X(ephemeralContainers): "null"
+    conditions:
+    - lastTransitionTime: "2023-11-06T12:22:53Z"
+      message: Ready
+      reason: Succeeded
+      status: "True"
+      type: Ready
+    ready: true
+    rulecount:
+      generate: 0
+      mutate: 0
+      validate: 1
+      verifyimages: 0
+- apiVersion: kyverno.io/v1
+  kind: ClusterPolicy
+  metadata:
+    annotations:
+      kyverno.io/kubernetes-version: "1.23"
+      kyverno.io/kyverno-version: 1.6.0
+      policies.kyverno.io/category: Other
+      policies.kyverno.io/description: OCI images may optionally be built with VOLUME
+        statements which, if run in read-only mode, would still result in write access
+        to the specified location. This may be unexpected and undesirable. This policy
+        checks the contents of every container image and inspects them for such VOLUME
+        statements, then blocks if found.
+      policies.kyverno.io/minversion: 1.6.0
+      policies.kyverno.io/severity: medium
+      policies.kyverno.io/subject: Pod
+      policies.kyverno.io/title: Block Images with Volumes
+    creationTimestamp: "2023-11-06T12:22:50Z"
+    generation: 1
+    labels:
+      app.kubernetes.io/instance: c2p
+    name: block-images-with-volumes
+    resourceVersion: "10841"
+    uid: f4fccbca-9ffc-4c17-aed0-cbca8d7163ae
+  spec:
+    background: true
+    rules:
+    - match:
+        any:
+        - resources:
+            kinds:
+            - Pod
+      name: block-images-with-vols
+      preconditions:
+        all:
+        - key: '{{request.operation || ''BACKGROUND''}}'
+          operator: NotEquals
+          value: DELETE
+      validate:
+        foreach:
+        - context:
+          - imageRegistry:
+              reference: '{{ element.image }}'
+            name: imageData
+          deny:
+            conditions:
+              all:
+              - key: '{{ imageData.configData.config.Volumes || '''' | length(@) }}'
+                operator: GreaterThan
+                value: 0
+          list: request.object.spec.containers
+        message: Images containing built-in volumes are prohibited.
+    validationFailureAction: audit
+  status:
+    autogen:
+      rules:
+      - exclude:
+          resources: {}
+        generate:
+          clone: {}
+          cloneList: {}
+        match:
+          any:
+          - resources:
+              kinds:
+              - DaemonSet
+              - Deployment
+              - Job
+              - StatefulSet
+              - ReplicaSet
+              - ReplicationController
+          resources: {}
+        mutate: {}
+        name: autogen-block-images-with-vols
+        preconditions:
+          all:
+          - key: '{{request.operation || ''BACKGROUND''}}'
+            operator: NotEquals
+            value: DELETE
+        validate:
+          foreach:
+          - context:
+            - imageRegistry:
+                reference: '{{ element.image }}'
+              name: imageData
+            deny:
+              conditions:
+                all:
+                - key: '{{ imageData.configData.config.Volumes || '''' | length(@)
+                    }}'
+                  operator: GreaterThan
+                  value: 0
+            list: request.object.spec.template.spec.containers
+          message: Images containing built-in volumes are prohibited.
+      - exclude:
+          resources: {}
+        generate:
+          clone: {}
+          cloneList: {}
+        match:
+          any:
+          - resources:
+              kinds:
+              - CronJob
+          resources: {}
+        mutate: {}
+        name: autogen-cronjob-block-images-with-vols
+        preconditions:
+          all:
+          - key: '{{request.operation || ''BACKGROUND''}}'
+            operator: NotEquals
+            value: DELETE
+        validate:
+          foreach:
+          - context:
+            - imageRegistry:
+                reference: '{{ element.image }}'
+              name: imageData
+            deny:
+              conditions:
+                all:
+                - key: '{{ imageData.configData.config.Volumes || '''' | length(@)
+                    }}'
+                  operator: GreaterThan
+                  value: 0
+            list: request.object.spec.jobTemplate.spec.template.spec.containers
+          message: Images containing built-in volumes are prohibited.
+    conditions:
+    - lastTransitionTime: "2023-11-06T12:22:53Z"
+      message: Ready
+      reason: Succeeded
+      status: "True"
+      type: Ready
+    ready: true
+    rulecount:
+      generate: 0
+      mutate: 0
+      validate: 1
+      verifyimages: 0
+- apiVersion: kyverno.io/v1
+  kind: ClusterPolicy
+  metadata:
+    annotations:
+      kyverno.io/kubernetes-version: "1.23"
+      kyverno.io/kyverno-version: 1.6.0
+      policies.kyverno.io/category: Other
+      policies.kyverno.io/description: Pods which run containers of very large image
+        size take longer to pull and require more space to store. A user may either
+        inadvertently or purposefully name an image which is unusually large to disrupt
+        operations. This policy checks the size of every container image and blocks
+        if it is over 2 Gibibytes.
+      policies.kyverno.io/minversion: 1.6.0
+      policies.kyverno.io/severity: medium
+      policies.kyverno.io/subject: Pod
+      policies.kyverno.io/title: Block Large Images
+    creationTimestamp: "2023-11-06T12:22:50Z"
+    generation: 1
+    labels:
+      app.kubernetes.io/instance: c2p
+    name: block-large-images
+    resourceVersion: "10813"
+    uid: 94249bcf-bb20-44be-b463-ddb4f187a310
+  spec:
+    background: true
+    rules:
+    - match:
+        any:
+        - resources:
+            kinds:
+            - Pod
+      name: block-over-twogi
+      preconditions:
+        all:
+        - key: '{{request.operation || ''BACKGROUND''}}'
+          operator: NotEquals
+          value: DELETE
+      validate:
+        foreach:
+        - context:
+          - imageRegistry:
+              jmesPath: to_string(sum(manifest.layers[*].size))
+              reference: '{{ element.image }}'
+            name: imageSize
+          deny:
+            conditions:
+              all:
+              - key: 2Gi
+                operator: LessThan
+                value: '{{imageSize}}'
+          list: request.object.spec.containers
+        message: images with size greater than 2Gi not allowed
+    validationFailureAction: audit
+  status:
+    autogen:
+      rules:
+      - exclude:
+          resources: {}
+        generate:
+          clone: {}
+          cloneList: {}
+        match:
+          any:
+          - resources:
+              kinds:
+              - DaemonSet
+              - Deployment
+              - Job
+              - StatefulSet
+              - ReplicaSet
+              - ReplicationController
+          resources: {}
+        mutate: {}
+        name: autogen-block-over-twogi
+        preconditions:
+          all:
+          - key: '{{request.operation || ''BACKGROUND''}}'
+            operator: NotEquals
+            value: DELETE
+        validate:
+          foreach:
+          - context:
+            - imageRegistry:
+                jmesPath: to_string(sum(manifest.layers[*].size))
+                reference: '{{ element.image }}'
+              name: imageSize
+            deny:
+              conditions:
+                all:
+                - key: 2Gi
+                  operator: LessThan
+                  value: '{{imageSize}}'
+            list: request.object.spec.template.spec.containers
+          message: images with size greater than 2Gi not allowed
+      - exclude:
+          resources: {}
+        generate:
+          clone: {}
+          cloneList: {}
+        match:
+          any:
+          - resources:
+              kinds:
+              - CronJob
+          resources: {}
+        mutate: {}
+        name: autogen-cronjob-block-over-twogi
+        preconditions:
+          all:
+          - key: '{{request.operation || ''BACKGROUND''}}'
+            operator: NotEquals
+            value: DELETE
+        validate:
+          foreach:
+          - context:
+            - imageRegistry:
+                jmesPath: to_string(sum(manifest.layers[*].size))
+                reference: '{{ element.image }}'
+              name: imageSize
+            deny:
+              conditions:
+                all:
+                - key: 2Gi
+                  operator: LessThan
+                  value: '{{imageSize}}'
+            list: request.object.spec.jobTemplate.spec.template.spec.containers
+          message: images with size greater than 2Gi not allowed
+    conditions:
+    - lastTransitionTime: "2023-11-06T12:22:53Z"
+      message: Ready
+      reason: Succeeded
+      status: "True"
+      type: Ready
+    ready: true
+    rulecount:
+      generate: 0
+      mutate: 0
+      validate: 1
+      verifyimages: 0
+- apiVersion: kyverno.io/v1
+  kind: ClusterPolicy
+  metadata:
+    annotations:
+      kyverno.io/kubernetes-version: "1.23"
+      kyverno.io/kyverno-version: 1.6.0
+      policies.kyverno.io/category: Other
+      policies.kyverno.io/description: Images that are old usually have some open
+        security vulnerabilities which are not patched. This policy checks the contents
+        of every container image and inspects them for the create time. If it finds
+        any image which was built more than 6 months ago this policy blocks the deployment.
+      policies.kyverno.io/minversion: 1.6.0
+      policies.kyverno.io/severity: medium
+      policies.kyverno.io/subject: Pod
+      policies.kyverno.io/title: Block Stale Images
+    creationTimestamp: "2023-11-06T12:22:50Z"
+    generation: 1
+    labels:
+      app.kubernetes.io/instance: c2p
+    name: block-stale-images
+    resourceVersion: "10846"
+    uid: 5d96e260-e01f-4296-9463-507b4debb47c
+  spec:
+    background: true
+    rules:
+    - match:
+        any:
+        - resources:
+            kinds:
+            - Pod
+      name: block-stale-images
+      validate:
+        foreach:
+        - context:
+          - imageRegistry:
+              reference: '{{ element.image }}'
+            name: imageData
+          deny:
+            conditions:
+              all:
+              - key: '{{ time_since('''', ''{{ imageData.configData.created }}'',
+                  '''') }}'
+                operator: GreaterThan
+                value: 4380h
+          list: request.object.spec.containers
+        message: Images built more than 6 months ago are prohibited.
+    validationFailureAction: audit
+  status:
+    autogen:
+      rules:
+      - exclude:
+          resources: {}
+        generate:
+          clone: {}
+          cloneList: {}
+        match:
+          any:
+          - resources:
+              kinds:
+              - DaemonSet
+              - Deployment
+              - Job
+              - StatefulSet
+              - ReplicaSet
+              - ReplicationController
+          resources: {}
+        mutate: {}
+        name: autogen-block-stale-images
+        validate:
+          foreach:
+          - context:
+            - imageRegistry:
+                reference: '{{ element.image }}'
+              name: imageData
+            deny:
+              conditions:
+                all:
+                - key: '{{ time_since('''', ''{{ imageData.configData.created }}'',
+                    '''') }}'
+                  operator: GreaterThan
+                  value: 4380h
+            list: request.object.spec.template.spec.containers
+          message: Images built more than 6 months ago are prohibited.
+      - exclude:
+          resources: {}
+        generate:
+          clone: {}
+          cloneList: {}
+        match:
+          any:
+          - resources:
+              kinds:
+              - CronJob
+          resources: {}
+        mutate: {}
+        name: autogen-cronjob-block-stale-images
+        validate:
+          foreach:
+          - context:
+            - imageRegistry:
+                reference: '{{ element.image }}'
+              name: imageData
+            deny:
+              conditions:
+                all:
+                - key: '{{ time_since('''', ''{{ imageData.configData.created }}'',
+                    '''') }}'
+                  operator: GreaterThan
+                  value: 4380h
+            list: request.object.spec.jobTemplate.spec.template.spec.containers
+          message: Images built more than 6 months ago are prohibited.
+    conditions:
+    - lastTransitionTime: "2023-11-06T12:22:53Z"
+      message: Ready
+      reason: Succeeded
+      status: "True"
+      type: Ready
+    ready: true
+    rulecount:
+      generate: 0
+      mutate: 0
+      validate: 1
+      verifyimages: 0
+- apiVersion: kyverno.io/v1
+  kind: ClusterPolicy
+  metadata:
+    annotations:
+      policies.kyverno.io/category: Sample
+      policies.kyverno.io/description: Kubernetes RBAC allows for controls on kinds
+        of resources or those with specific names. But it does not have the type of
+        granularity often required in more complex environments. This policy restricts
+        updates and deletes to any Service resource that contains the label `protected=true`
+        unless by a cluster-admin.
+      policies.kyverno.io/subject: RBAC
+      policies.kyverno.io/title: Block Updates and Deletes
+    creationTimestamp: "2023-11-06T12:22:50Z"
+    generation: 1
+    labels:
+      app.kubernetes.io/instance: c2p
+    name: block-updates-deletes
+    resourceVersion: "10840"
+    uid: e700a4a0-cb96-48bd-b391-b10d5a652823
+  spec:
+    background: false
+    rules:
+    - exclude:
+        any:
+        - clusterRoles:
+          - cluster-admin
+      match:
+        any:
+        - resources:
+            kinds:
+            - Service
+            selector:
+              matchLabels:
+                protected: "true"
+      name: block-updates-deletes
+      validate:
+        deny:
+          conditions:
+            any:
+            - key: '{{request.operation || ''BACKGROUND''}}'
+              operator: AnyIn
+              value:
+              - DELETE
+              - UPDATE
+        message: This resource is protected and changes are not allowed. Please seek
+          a cluster-admin.
+    validationFailureAction: enforce
+  status:
+    autogen: {}
+    conditions:
+    - lastTransitionTime: "2023-11-06T12:22:53Z"
+      message: Ready
+      reason: Succeeded
+      status: "True"
+      type: Ready
+    ready: true
+    rulecount:
+      generate: 0
+      mutate: 0
+      validate: 1
+      verifyimages: 0
+- apiVersion: kyverno.io/v1
+  kind: ClusterPolicy
+  metadata:
+    annotations:
+      policies.kyverno.io/category: Sample
+      policies.kyverno.io/description: The `exec` command may be used to gain shell
+        access, or run other commands, in a Pod's container. While this can be useful
+        for troubleshooting purposes, it could represent an attack vector and is discouraged.
+        This policy blocks Pod exec commands based upon a Namespace label `exec=false`.
+      policies.kyverno.io/minversion: 1.6.0
+      policies.kyverno.io/subject: Pod
+      policies.kyverno.io/title: Block Pod Exec by Namespace Label
+    creationTimestamp: "2023-11-06T12:22:50Z"
+    generation: 1
+    labels:
+      app.kubernetes.io/instance: c2p
+    name: deny-exec-by-namespace-label
+    resourceVersion: "10835"
+    uid: 504f8329-bebc-4f6a-bcb5-ed5d558227db
+  spec:
+    background: false
+    rules:
+    - context:
+      - apiCall:
+          jmesPath: metadata.labels.exec || ''
+          method: GET
+          urlPath: /api/v1/namespaces/{{request.namespace}}
+        name: nslabelexec
+      match:
+        any:
+        - resources:
+            kinds:
+            - Pod/exec
+      name: deny-exec-by-ns-label
+      preconditions:
+        all:
+        - key: '{{ request.operation || ''BACKGROUND'' }}'
+          operator: Equals
+          value: CONNECT
+      validate:
+        deny:
+          conditions:
+            any:
+            - key: '{{ nslabelexec }}'
+              operator: Equals
+              value: "false"
+        message: Executing a command in a container is forbidden for Pods running
+          in Namespaces protected with the label "exec=false".
+    validationFailureAction: enforce
+  status:
+    autogen: {}
+    conditions:
+    - lastTransitionTime: "2023-11-06T12:22:53Z"
+      message: Ready
+      reason: Succeeded
+      status: "True"
+      type: Ready
+    ready: true
+    rulecount:
+      generate: 0
+      mutate: 0
+      validate: 1
+      verifyimages: 0
+- apiVersion: kyverno.io/v1
+  kind: ClusterPolicy
+  metadata:
+    annotations:
+      policies.kyverno.io/category: Sample
+      policies.kyverno.io/description: The `exec` command may be used to gain shell
+        access, or run other commands, in a Pod's container. While this can be useful
+        for troubleshooting purposes, it could represent an attack vector and is discouraged.
+        This policy blocks Pod exec commands to Pods in a Namespace called `pci`.
+      policies.kyverno.io/minversion: 1.6.0
+      policies.kyverno.io/subject: Pod
+      policies.kyverno.io/title: Block Pod Exec by Namespace Name
+    creationTimestamp: "2023-11-06T12:22:52Z"
+    generation: 1
+    labels:
+      app.kubernetes.io/instance: c2p
+    name: deny-exec-by-namespace-name
+    resourceVersion: "10849"
+    uid: 9d8a16a9-03c1-42e5-9dbb-89520b2a6481
+  spec:
+    background: false
+    rules:
+    - match:
+        any:
+        - resources:
+            kinds:
+            - Pod/exec
+      name: deny-exec-ns-pci
+      preconditions:
+        all:
+        - key: '{{ request.operation || ''BACKGROUND'' }}'
+          operator: Equals
+          value: CONNECT
+      validate:
+        deny:
+          conditions:
+            any:
+            - key: '{{ request.namespace }}'
+              operator: Equals
+              value: pci
+        message: Pods in this namespace may not be exec'd into.
+    validationFailureAction: enforce
+  status:
+    autogen: {}
+    conditions:
+    - lastTransitionTime: "2023-11-06T12:22:53Z"
+      message: Ready
+      reason: Succeeded
+      status: "True"
+      type: Ready
+    ready: true
+    rulecount:
+      generate: 0
+      mutate: 0
+      validate: 1
+      verifyimages: 0
+- apiVersion: kyverno.io/v1
+  kind: ClusterPolicy
+  metadata:
+    annotations:
+      policies.kyverno.io/category: Sample
+      policies.kyverno.io/description: The `exec` command may be used to gain shell
+        access, or run other commands, in a Pod's container. While this can be useful
+        for troubleshooting purposes, it could represent an attack vector and is discouraged.
+        This policy blocks Pod exec commands to containers named `nginx` in Pods starting
+        with name `myapp-maintenance`.
+      policies.kyverno.io/minversion: 1.6.0
+      policies.kyverno.io/subject: Pod
+      policies.kyverno.io/title: Block Pod Exec by Pod and Container
+    creationTimestamp: "2023-11-06T12:22:50Z"
+    generation: 1
+    labels:
+      app.kubernetes.io/instance: c2p
+    name: deny-exec-by-pod-and-container
+    resourceVersion: "10842"
+    uid: 4c0d68a4-2138-4055-9c4b-ec2a3d610020
+  spec:
+    background: false
+    rules:
+    - match:
+        any:
+        - resources:
+            kinds:
+            - Pod/exec
+      name: deny-nginx-exec-in-myapp-maintenance
+      preconditions:
+        all:
+        - key: '{{ request.operation || ''BACKGROUND'' }}'
+          operator: Equals
+          value: CONNECT
+        - key: '{{ request.name }}'
+          operator: Equals
+          value: myapp-maintenance*
+      validate:
+        deny:
+          conditions:
+            all:
+            - key: '{{ request.object.container }}'
+              operator: Equals
+              value: nginx
+        message: Nginx containers inside myapp-maintanence Pods may not be exec'd
+          into.
+    validationFailureAction: enforce
+  status:
+    autogen: {}
+    conditions:
+    - lastTransitionTime: "2023-11-06T12:22:53Z"
+      message: Ready
+      reason: Succeeded
+      status: "True"
+      type: Ready
+    ready: true
+    rulecount:
+      generate: 0
+      mutate: 0
+      validate: 1
+      verifyimages: 0
+- apiVersion: kyverno.io/v1
+  kind: ClusterPolicy
+  metadata:
+    annotations:
+      policies.kyverno.io/category: Sample
+      policies.kyverno.io/description: The `exec` command may be used to gain shell
+        access, or run other commands, in a Pod's container. While this can be useful
+        for troubleshooting purposes, it could represent an attack vector and is discouraged.
+        This policy blocks Pod exec commands to Pods having the label `exec=false`.
+      policies.kyverno.io/minversion: 1.6.0
+      policies.kyverno.io/subject: Pod
+      policies.kyverno.io/title: Block Pod Exec by Pod Label
+    creationTimestamp: "2023-11-06T12:22:50Z"
+    generation: 1
+    labels:
+      app.kubernetes.io/instance: c2p
+    name: deny-exec-by-pod-label
+    resourceVersion: "10831"
+    uid: deb29d0e-08f5-4c39-8872-37ef52bde6a0
+  spec:
+    background: false
+    rules:
+    - context:
+      - apiCall:
+          jmesPath: metadata.labels.exec || ''
+          method: GET
+          urlPath: /api/v1/namespaces/{{request.namespace}}/pods/{{request.name}}
+        name: podexeclabel
+      match:
+        any:
+        - resources:
+            kinds:
+            - Pod/exec
+      name: deny-exec-by-label
+      preconditions:
+        all:
+        - key: '{{ request.operation || ''BACKGROUND'' }}'
+          operator: Equals
+          value: CONNECT
+      validate:
+        deny:
+          conditions:
+            all:
+            - key: '{{ podexeclabel }}'
+              operator: Equals
+              value: "false"
+        message: Exec'ing into Pods protected with the label `exec=false` is forbidden.
+    validationFailureAction: enforce
+  status:
+    autogen: {}
+    conditions:
+    - lastTransitionTime: "2023-11-06T12:22:53Z"
+      message: Ready
+      reason: Succeeded
+      status: "True"
+      type: Ready
+    ready: true
+    rulecount:
+      generate: 0
+      mutate: 0
+      validate: 1
+      verifyimages: 0
+- apiVersion: kyverno.io/v1
+  kind: ClusterPolicy
+  metadata:
+    annotations:
+      policies.kyverno.io/category: Sample
+      policies.kyverno.io/description: The `exec` command may be used to gain shell
+        access, or run other commands, in a Pod's container. While this can be useful
+        for troubleshooting purposes, it could represent an attack vector and is discouraged.
+        This policy blocks Pod exec commands to Pods beginning with the name `myapp-maintenance-`.
+      policies.kyverno.io/minversion: 1.6.0
+      policies.kyverno.io/subject: Pod
+      policies.kyverno.io/title: Block Pod Exec by Pod Name
+    creationTimestamp: "2023-11-06T12:22:50Z"
+    generation: 1
+    labels:
+      app.kubernetes.io/instance: c2p
+    name: deny-exec-by-pod-name
+    resourceVersion: "10827"
+    uid: 3fac2880-48d8-45e1-a46d-f46083fa58f6
+  spec:
+    background: false
+    rules:
+    - match:
+        any:
+        - resources:
+            kinds:
+            - Pod/exec
+      name: deny-exec-myapp-maintenance
+      preconditions:
+        all:
+        - key: '{{ request.operation || ''BACKGROUND'' }}'
+          operator: Equals
+          value: CONNECT
+      validate:
+        deny:
+          conditions:
+            all:
+            - key: '{{ request.name }}'
+              operator: Equals
+              value: myapp-maintenance-*
+        message: Exec'ing into Pods called "myapp-maintenance" is not allowed.
+    validationFailureAction: enforce
+  status:
+    autogen: {}
+    conditions:
+    - lastTransitionTime: "2023-11-06T12:22:53Z"
+      message: Ready
+      reason: Succeeded
+      status: "True"
+      type: Ready
+    ready: true
+    rulecount:
+      generate: 0
+      mutate: 0
+      validate: 1
+      verifyimages: 0
+- apiVersion: kyverno.io/v1
+  kind: ClusterPolicy
+  metadata:
+    annotations:
+      kyverno.io/kubernetes-version: "1.24"
+      kyverno.io/kyverno-version: 1.8.0
+      policies.kyverno.io/category: Pod Security, EKS Best Practices
+      policies.kyverno.io/description: The baseline profile of the Pod Security Standards
+        is a collection of the most basic and important steps that can be taken to
+        secure Pods. Beginning with Kyverno 1.8, an entire profile may be assigned
+        to the cluster through a single rule. This policy configures the baseline
+        profile through the latest version of the Pod Security Standards cluster wide.
+      policies.kyverno.io/minversion: 1.8.0
+      policies.kyverno.io/severity: high
+      policies.kyverno.io/subject: Pod
+      policies.kyverno.io/title: Baseline Pod Security Standards
+    creationTimestamp: "2023-11-06T12:22:51Z"
+    generation: 1
+    labels:
+      app.kubernetes.io/instance: c2p
+    name: podsecurity-subrule-baseline
+    resourceVersion: "10845"
+    uid: f702693d-bef5-4dc3-abe1-62428a68c388
+  spec:
+    background: true
+    rules:
+    - match:
+        any:
+        - resources:
+            kinds:
+            - Pod
+      name: baseline
+      validate:
+        podSecurity:
+          level: baseline
+          version: latest
+    validationFailureAction: audit
+  status:
+    autogen:
+      rules:
+      - exclude:
+          resources: {}
+        generate:
+          clone: {}
+          cloneList: {}
+        match:
+          any:
+          - resources:
+              kinds:
+              - DaemonSet
+              - Deployment
+              - Job
+              - StatefulSet
+              - ReplicaSet
+              - ReplicationController
+          resources: {}
+        mutate: {}
+        name: autogen-baseline
+        validate:
+          podSecurity:
+            level: baseline
+            version: latest
+      - exclude:
+          resources: {}
+        generate:
+          clone: {}
+          cloneList: {}
+        match:
+          any:
+          - resources:
+              kinds:
+              - CronJob
+          resources: {}
+        mutate: {}
+        name: autogen-cronjob-baseline
+        validate:
+          podSecurity:
+            level: baseline
+            version: latest
+    conditions:
+    - lastTransitionTime: "2023-11-06T12:22:53Z"
+      message: Ready
+      reason: Succeeded
+      status: "True"
+      type: Ready
+    ready: true
+    rulecount:
+      generate: 0
+      mutate: 0
+      validate: 1
+      verifyimages: 0
+kind: List
+metadata:
+  resourceVersion: ""
