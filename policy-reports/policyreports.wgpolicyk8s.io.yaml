@@ -1926,13 +1926,13 @@ items:
   kind: PolicyReport
   metadata:
     creationTimestamp: "2023-11-06T12:05:32Z"
-    generation: 4
+    generation: 5
     labels:
       app.kubernetes.io/managed-by: kyverno
       cpol.kyverno.io/allowed-base-images: "5523"
     name: cpol-allowed-base-images
     namespace: c2p
-    resourceVersion: "6391"
+    resourceVersion: "6548"
     uid: 1b0ff3ff-5689-4780-a2ef-d0ebccdceab3
   results:
   - category: Other
@@ -2029,26 +2029,7 @@ items:
     source: kyverno
     timestamp:
       nanos: 0
-      seconds: 1699272421
-  - category: Other
-    message: 'validation failure: This container image''s base is not in the approved
-      list or is not specified. Only pre-approved base images may be used. Please
-      contact the platform team for assistance.'
-    policy: allowed-base-images
-    resources:
-    - apiVersion: batch/v1
-      kind: Job
-      name: collect-kyverno-policy-report-28321204
-      namespace: c2p
-      uid: 6b2303d9-6153-4e0d-a227-709aaa00751c
-    result: fail
-    rule: autogen-allowed-base-images
-    scored: true
-    severity: medium
-    source: kyverno
-    timestamp:
-      nanos: 0
-      seconds: 1699272339
+      seconds: 1699272451
   - category: Other
     message: 'validation failure: This container image''s base is not in the approved
       list or is not specified. Only pre-approved base images may be used. Please
@@ -2089,7 +2070,7 @@ items:
       seconds: 1699272323
   summary:
     error: 0
-    fail: 8
+    fail: 7
     pass: 0
     skip: 0
     warn: 0
@@ -2339,13 +2320,13 @@ items:
   kind: PolicyReport
   metadata:
     creationTimestamp: "2023-11-06T12:05:32Z"
-    generation: 4
+    generation: 5
     labels:
       app.kubernetes.io/managed-by: kyverno
       cpol.kyverno.io/allowed-podpriorities: "5513"
     name: cpol-allowed-podpriorities
     namespace: c2p
-    resourceVersion: "6395"
+    resourceVersion: "6551"
     uid: 47dd58e3-ad42-4475-a916-f736ebd498aa
   results:
   - category: Sample
@@ -2395,23 +2376,7 @@ items:
     source: kyverno
     timestamp:
       nanos: 0
-      seconds: 1699272421
-  - category: Sample
-    message: validation rule 'autogen-validate-pod-priority-pods' passed.
-    policy: allowed-podpriorities
-    resources:
-    - apiVersion: batch/v1
-      kind: Job
-      name: collect-kyverno-policy-report-28321204
-      namespace: c2p
-      uid: 6b2303d9-6153-4e0d-a227-709aaa00751c
-    result: pass
-    rule: autogen-validate-pod-priority-pods
-    scored: true
-    source: kyverno
-    timestamp:
-      nanos: 0
-      seconds: 1699272338
+      seconds: 1699272451
   - category: Sample
     message: validation rule 'autogen-validate-pod-priority-pods' passed.
     policy: allowed-podpriorities
@@ -2463,25 +2428,7 @@ items:
     source: kyverno
     timestamp:
       nanos: 0
-      seconds: 1699272421
-  - category: Sample
-    message: 'failed to check deny preconditions: failed to substitute variables in
-      condition key: failed to resolve request.object.spec.template.spec.priorityClassName
-      at path : JMESPath query failed: Unknown key "priorityClassName" in path'
-    policy: allowed-podpriorities
-    resources:
-    - apiVersion: batch/v1
-      kind: Job
-      name: collect-kyverno-policy-report-28321204
-      namespace: c2p
-      uid: 6b2303d9-6153-4e0d-a227-709aaa00751c
-    result: error
-    rule: validate-pod-priority
-    scored: true
-    source: kyverno
-    timestamp:
-      nanos: 0
-      seconds: 1699272338
+      seconds: 1699272451
   - category: Sample
     message: 'failed to check deny preconditions: failed to substitute variables in
       condition key: failed to resolve request.object.spec.template.spec.priorityClassName
@@ -2567,22 +2514,22 @@ items:
       nanos: 0
       seconds: 1699272361
   summary:
-    error: 5
+    error: 4
     fail: 0
-    pass: 8
+    pass: 7
     skip: 0
     warn: 0
 - apiVersion: wgpolicyk8s.io/v1alpha2
   kind: PolicyReport
   metadata:
     creationTimestamp: "2023-11-06T12:05:32Z"
-    generation: 4
+    generation: 5
     labels:
       app.kubernetes.io/managed-by: kyverno
       cpol.kyverno.io/block-ephemeral-containers: "5505"
     name: cpol-block-ephemeral-containers
     namespace: c2p
-    resourceVersion: "6399"
+    resourceVersion: "6545"
     uid: a929892a-826c-48a2-b4f4-683bcbe26470
   results:
   - category: Other
@@ -2618,24 +2565,7 @@ items:
     source: kyverno
     timestamp:
       nanos: 0
-      seconds: 1699272421
-  - category: Other
-    message: validation rule 'autogen-block-ephemeral-containers' passed.
-    policy: block-ephemeral-containers
-    resources:
-    - apiVersion: batch/v1
-      kind: Job
-      name: collect-kyverno-policy-report-28321204
-      namespace: c2p
-      uid: 6b2303d9-6153-4e0d-a227-709aaa00751c
-    result: pass
-    rule: autogen-block-ephemeral-containers
-    scored: true
-    severity: medium
-    source: kyverno
-    timestamp:
-      nanos: 0
-      seconds: 1699272338
+      seconds: 1699272451
   - category: Other
     message: validation rule 'autogen-block-ephemeral-containers' passed.
     policy: block-ephemeral-containers
@@ -2724,20 +2654,20 @@ items:
   summary:
     error: 0
     fail: 0
-    pass: 8
+    pass: 7
     skip: 0
     warn: 0
 - apiVersion: wgpolicyk8s.io/v1alpha2
   kind: PolicyReport
   metadata:
     creationTimestamp: "2023-11-06T12:05:32Z"
-    generation: 4
+    generation: 5
     labels:
       app.kubernetes.io/managed-by: kyverno
       cpol.kyverno.io/block-images-with-volumes: "5524"
     name: cpol-block-images-with-volumes
     namespace: c2p
-    resourceVersion: "6392"
+    resourceVersion: "6552"
     uid: b96bde75-9b3f-4479-bd38-e6c11ed2aab2
   results:
   - category: Other
@@ -2773,24 +2703,7 @@ items:
     source: kyverno
     timestamp:
       nanos: 0
-      seconds: 1699272421
-  - category: Other
-    message: rule passed
-    policy: block-images-with-volumes
-    resources:
-    - apiVersion: batch/v1
-      kind: Job
-      name: collect-kyverno-policy-report-28321204
-      namespace: c2p
-      uid: 6b2303d9-6153-4e0d-a227-709aaa00751c
-    result: pass
-    rule: autogen-block-images-with-vols
-    scored: true
-    severity: medium
-    source: kyverno
-    timestamp:
-      nanos: 0
-      seconds: 1699272338
+      seconds: 1699272452
   - category: Other
     message: rule passed
     policy: block-images-with-volumes
@@ -2879,20 +2792,20 @@ items:
   summary:
     error: 0
     fail: 0
-    pass: 8
+    pass: 7
     skip: 0
     warn: 0
 - apiVersion: wgpolicyk8s.io/v1alpha2
   kind: PolicyReport
   metadata:
     creationTimestamp: "2023-11-06T12:05:32Z"
-    generation: 4
+    generation: 5
     labels:
       app.kubernetes.io/managed-by: kyverno
       cpol.kyverno.io/block-large-images: "5511"
     name: cpol-block-large-images
     namespace: c2p
-    resourceVersion: "6393"
+    resourceVersion: "6546"
     uid: 6685c320-e39a-452b-9ee8-b7e9508c7296
   results:
   - category: Other
@@ -2928,24 +2841,7 @@ items:
     source: kyverno
     timestamp:
       nanos: 0
-      seconds: 1699272421
-  - category: Other
-    message: rule passed
-    policy: block-large-images
-    resources:
-    - apiVersion: batch/v1
-      kind: Job
-      name: collect-kyverno-policy-report-28321204
-      namespace: c2p
-      uid: 6b2303d9-6153-4e0d-a227-709aaa00751c
-    result: pass
-    rule: autogen-block-over-twogi
-    scored: true
-    severity: medium
-    source: kyverno
-    timestamp:
-      nanos: 0
-      seconds: 1699272338
+      seconds: 1699272451
   - category: Other
     message: rule passed
     policy: block-large-images
@@ -3034,20 +2930,20 @@ items:
   summary:
     error: 0
     fail: 0
-    pass: 8
+    pass: 7
     skip: 0
     warn: 0
 - apiVersion: wgpolicyk8s.io/v1alpha2
   kind: PolicyReport
   metadata:
     creationTimestamp: "2023-11-06T12:05:32Z"
-    generation: 4
+    generation: 5
     labels:
       app.kubernetes.io/managed-by: kyverno
       cpol.kyverno.io/block-stale-images: "5515"
     name: cpol-block-stale-images
     namespace: c2p
-    resourceVersion: "6398"
+    resourceVersion: "6553"
     uid: 7ced48ff-82f0-4f0c-b68e-533ea8de9c7b
   results:
   - category: Other
@@ -3083,24 +2979,7 @@ items:
     source: kyverno
     timestamp:
       nanos: 0
-      seconds: 1699272421
-  - category: Other
-    message: rule passed
-    policy: block-stale-images
-    resources:
-    - apiVersion: batch/v1
-      kind: Job
-      name: collect-kyverno-policy-report-28321204
-      namespace: c2p
-      uid: 6b2303d9-6153-4e0d-a227-709aaa00751c
-    result: pass
-    rule: autogen-block-stale-images
-    scored: true
-    severity: medium
-    source: kyverno
-    timestamp:
-      nanos: 0
-      seconds: 1699272339
+      seconds: 1699272451
   - category: Other
     message: rule passed
     policy: block-stale-images
@@ -3189,20 +3068,20 @@ items:
   summary:
     error: 0
     fail: 0
-    pass: 8
+    pass: 7
     skip: 0
     warn: 0
 - apiVersion: wgpolicyk8s.io/v1alpha2
   kind: PolicyReport
   metadata:
     creationTimestamp: "2023-11-06T12:05:32Z"
-    generation: 4
+    generation: 5
     labels:
       app.kubernetes.io/managed-by: kyverno
       cpol.kyverno.io/podsecurity-subrule-baseline: "5516"
     name: cpol-podsecurity-subrule-baseline
     namespace: c2p
-    resourceVersion: "6400"
+    resourceVersion: "6549"
     uid: 0c3a0be2-19ef-4485-b788-b502fbe67e96
   results:
   - category: Pod Security, EKS Best Practices
@@ -3238,24 +3117,7 @@ items:
     source: kyverno
     timestamp:
       nanos: 0
-      seconds: 1699272421
-  - category: Pod Security, EKS Best Practices
-    message: Validation rule 'autogen-baseline' passed.
-    policy: podsecurity-subrule-baseline
-    resources:
-    - apiVersion: batch/v1
-      kind: Job
-      name: collect-kyverno-policy-report-28321204
-      namespace: c2p
-      uid: 6b2303d9-6153-4e0d-a227-709aaa00751c
-    result: pass
-    rule: autogen-baseline
-    scored: true
-    severity: high
-    source: kyverno
-    timestamp:
-      nanos: 0
-      seconds: 1699272338
+      seconds: 1699272451
   - category: Pod Security, EKS Best Practices
     message: Validation rule 'autogen-baseline' passed.
     policy: podsecurity-subrule-baseline
@@ -3344,7 +3206,7 @@ items:
   summary:
     error: 0
     fail: 0
-    pass: 8
+    pass: 7
     skip: 0
     warn: 0
 - apiVersion: wgpolicyk8s.io/v1alpha2
